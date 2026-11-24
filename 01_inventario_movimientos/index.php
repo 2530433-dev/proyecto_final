@@ -83,7 +83,7 @@ try {
       <a href="https://aplicaciones-web-gecg.onrender.com/" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
        Prácticas Gael
       </a>
-      <a href="URL_PRACTICAS_KEVIN" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+      <a href="http://kevin-pagina.lovestoblog.com/practicas/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
        Prácticas Kevin
       </a>
      </div>
