@@ -1,6 +1,8 @@
 <?php
 require __DIR__.'/includes/db.php';
 require __DIR__.'/includes/helpers.php';
+$datos = require __DIR__.'/includes/datos.php';
+$h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 
 // Si se envía un formulario de inventario, mantiene activa la vista PF
 $vistaActiva = ($_SERVER['REQUEST_METHOD'] === 'POST') ? 'pf' : 'portada';
@@ -58,19 +60,52 @@ try {
    <?php endif; ?>
 
    <section id="vista-portada" class="vista <?= $vistaActiva === 'portada' ? 'active' : '' ?>">
-    <div class="card portada-card">
-     <h2>Sistema de Control de Inventario y Movimientos</h2>
-     <p class="small">Aplicación web para la gestión de productos, existencias mínimas y monitoreo de entradas y salidas mediante SQL.</p>
+    <div class="card portada-card portada-hero">
+     <p class="eyebrow"><?= $h($datos['institucion']) ?></p>
+     <h2><?= $h($datos['proyecto']) ?></h2>
+     <p>Aplicación web para la gestión de productos, existencias mínimas y monitoreo de entradas y salidas mediante SQL.</p>
      <hr class="divider"/>
      <div class="grid">
       <div>
+       <strong>Materia</strong>
+       <p class="small"><?= $h($datos['materia']) ?></p>
+      </div>
+      <div>
+       <strong>Profesor</strong>
+       <p class="small"><?= $h($datos['profesor']) ?></p>
+      </div>
+      <div>
+       <strong>Carrera y grupo</strong>
+       <p class="small"><?= $h($datos['carrera']) ?> · Grupo <?= $h($datos['grupo']) ?></p>
+      </div>
+      <div>
        <strong>Integrantes</strong>
-       <p class="small">Gael<br/>Kevin</p>
+       <p class="small">
+        <?php foreach ($datos['participantes'] as $p): ?>
+         <?= $h($p['nombre']) ?> (<?= $h($p['matricula']) ?>)<br/>
+        <?php endforeach; ?>
+       </p>
       </div>
      </div>
      <div class="actions">
       <button type="button" class="primary" data-vista="pf">Ir al Proyecto Final (PF)</button>
       <button type="button" class="secondary" data-vista="practicas">Ver Prácticas</button>
+      <button type="button" class="secondary" data-vista="conclusiones">Conclusiones</button>
+     </div>
+    </div>
+
+    <div class="grid">
+     <div class="card">
+      <h3>Proyecto Final</h3>
+      <p class="small">Alta de productos, registro de entradas y salidas con transacciones y consulta del inventario.</p>
+     </div>
+     <div class="card">
+      <h3>Prácticas JS y PHP</h3>
+      <p class="small">Enlaces a la página de prácticas de cada integrante, hechas durante el curso.</p>
+     </div>
+     <div class="card">
+      <h3>Conclusiones</h3>
+      <p class="small">Datos generales de los participantes y reflexiones finales del proyecto.</p>
      </div>
     </div>
    </section>
@@ -188,16 +223,57 @@ try {
 
    <section id="vista-conclusiones" class="vista <?= $vistaActiva === 'conclusiones' ? 'active' : '' ?>">
     <div class="card">
-     <h2>Conclusiones</h2>
-     <p class="small">Espacio reservado para las reflexiones finales del proyecto.</p>
-     <hr class="divider"/>
+     <h2>Datos generales</h2>
+     <dl class="datos">
+      <dt>Proyecto</dt><dd><?= $h($datos['proyecto']) ?></dd>
+      <dt>Materia</dt><dd><?= $h($datos['materia']) ?></dd>
+      <dt>Profesor</dt><dd><?= $h($datos['profesor']) ?></dd>
+      <dt>Institución</dt><dd><?= $h($datos['institucion']) ?></dd>
+      <dt>Repositorio</dt><dd><a href="<?= $h($datos['repositorio']) ?>" target="_blank" rel="noopener noreferrer"><?= $h($datos['repositorio']) ?></a></dd>
+     </dl>
+    </div>
+
+    <div class="card">
+     <h2>Participantes</h2>
      <div class="grid">
-      <div>
-       <h3>Gael</h3>
-      </div>
-      <div>
-       <h3>Kevin</h3>
-      </div>
+      <?php foreach ($datos['participantes'] as $p): ?>
+       <div class="participante">
+        <h3><?= $h($p['nombre']) ?></h3>
+        <dl class="datos">
+         <dt>Matrícula</dt><dd><?= $h($p['matricula']) ?></dd>
+         <dt>Carrera</dt><dd><?= $h($datos['carrera']) ?></dd>
+         <dt>Grupo</dt><dd><?= $h($datos['grupo']) ?></dd>
+         <dt>Correo</dt><dd><a href="mailto:<?= $h($p['correo']) ?>"><?= $h($p['correo']) ?></a></dd>
+        </dl>
+       </div>
+      <?php endforeach; ?>
+     </div>
+    </div>
+
+    <div class="card">
+     <h2>Conclusión general</h2>
+     <p>
+      Con el Sistema de Control de Inventario y Movimientos integramos lo visto en la materia: JavaScript para
+      cambiar de vista, validar y filtrar en el navegador; PHP para procesar formularios y MySQL como fuente
+      principal de la información. Aprendimos a relacionar tablas con llaves foráneas, a consultar con
+      <code>JOIN</code> y a usar transacciones para que un movimiento y la actualización del stock ocurran juntos.
+      También trabajamos con Git y GitLab para colaborar y publicamos nuestras prácticas en un servidor.
+     </p>
+    </div>
+
+    <div class="card">
+     <h2>Conclusiones individuales</h2>
+     <div class="grid">
+      <?php foreach ($datos['participantes'] as $p): ?>
+       <div>
+        <h3><?= $h($p['nombre']) ?></h3>
+        <?php if ($p['conclusion'] !== ''): ?>
+         <p><?= nl2br($h($p['conclusion'])) ?></p>
+        <?php else: ?>
+         <p class="pendiente">Pendiente.</p>
+        <?php endif; ?>
+       </div>
+      <?php endforeach; ?>
      </div>
     </div>
    </section>

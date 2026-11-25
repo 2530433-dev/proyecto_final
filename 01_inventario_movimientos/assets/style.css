@@ -182,3 +182,52 @@ th {
     border-top: 1px solid #e5e7eb;
     margin: 18px 0;
 }
+/* Portada y conclusiones */
+.portada-hero {
+    border-top: 5px solid #1d4ed8;
+}
+.portada-hero h2 {
+    font-size: 1.8rem;
+}
+.eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+}
+.card h3 {
+    margin: 0 0 8px;
+    color: #132a46;
+}
+.datos {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 16px;
+    margin: 0;
+}
+.datos dt {
+    font-weight: 700;
+    color: #475569;
+}
+.datos dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.datos a {
+    color: #1d4ed8;
+}
+.participante {
+    border: 1px solid #dbe3ee;
+    border-radius: 10px;
+    padding: 16px;
+    background: #f8fafc;
+}
+.pendiente {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    color: #94a3b8;
+    font-style: italic;
+}
