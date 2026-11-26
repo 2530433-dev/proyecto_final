@@ -1,7 +1,3 @@
-CREATE DATABASE IF NOT EXISTS proyecto_inventario CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE proyecto_inventario;
-
 CREATE TABLE categorias (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(80) NOT NULL UNIQUE
