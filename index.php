@@ -1,27 +1,25 @@
 <?php
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/helpers.php';
+require __DIR__ . '/includes/inventario.php';
 $datos = require __DIR__ . '/includes/datos.php';
-$h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 
-// Si se envía un formulario de inventario, mantiene activa la vista PF
-$vistaActiva = ($_SERVER['REQUEST_METHOD'] === 'POST') ? 'pf' : 'portada';
+$h = fn($v) => e((string)$v);
+
+$vistaActiva = (($_GET['vista'] ?? '') === 'pf') ? 'pf' : 'portada';
+$error       = $_GET['err'] ?? '';
+$mensajeOk   = $_GET['ok'] ?? '';
 
 try {
-    $sqlProductos = 'SELECT id, categoria_id, codigo, nombre, stock, stock_minimo, precio
-            FROM alumnos ORDER BY id DESC';
-    $pdo = db();
-    // TODO 1: consultar categorías.
-    $categorias = [];
-    // TODO 2: consultar productos con JOIN.
-    $productos = [];
-    // TODO 3: registrar un producto.
-    // TODO 4: registrar ENTRADA/SALIDA usando transacción.
-    // Regla: una SALIDA no puede dejar stock negativo.
-    // TODO 5: consultar últimos movimientos.
-    $movimientos = [];
+    $pdo         = db();
+    $categorias  = consultarCategorias($pdo);
+    $productos   = consultarProductos($pdo);
+    $movimientos = consultarMovimientos($pdo);
 } catch (Throwable $e) {
-    $error = $e->getMessage();
+    $error       = $e->getMessage();
+    $categorias  = [];
+    $productos   = [];
+    $movimientos = [];
 }
 ?>
 <!DOCTYPE html>
@@ -58,7 +56,11 @@ try {
 
     <main class="container">
         <?php if (!empty($error)): ?>
-            <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+            <div class="alert alert-danger"><?= e($error) ?></div>
+        <?php endif; ?>
+
+        <?php if (!empty($mensajeOk)): ?>
+            <div class="alert alert-success"><?= e($mensajeOk) ?></div>
         <?php endif; ?>
 
         <section id="vista-portada" class="vista <?= $vistaActiva === 'portada' ? 'active' : '' ?>">
@@ -130,9 +132,9 @@ try {
         <!-- PROYECTO FINAL -->
         <section id="vista-pf" class="vista <?= $vistaActiva === 'pf' ? 'active' : '' ?>">
             <div class="card">
-                <h2>Alta categoria</h2>
-                <form method="post">
-                    <input type="hidden" name="accion" value="producto"/>
+                <h2>Alta categoría</h2>
+                <form action="guardar.php" method="post">
+                    <input type="hidden" name="accion" value="categoria"/>
                     <div class="grid">
                         <div class="form-group">
                             <label>Nombre</label>
@@ -140,15 +142,14 @@ try {
                         </div>
                     </div>
                     <div class="actions">
-                        <button class="primary">Guardar categoria</button>
+                        <button class="primary">Guardar categoría</button>
                     </div>
                 </form>
             </div>
 
-
             <div class="card">
                 <h2>Alta de producto</h2>
-                <form method="post">
+                <form action="guardar.php" method="post">
                     <input type="hidden" name="accion" value="producto"/>
                     <div class="grid">
                         <div class="form-group">
@@ -163,7 +164,11 @@ try {
                             <label>Categoría</label>
                             <select name="categoria_id" required>
                                 <option value="">Selecciona</option>
-                                <!-- TODO -->
+                                <?php foreach ($categorias as $cat): ?>
+                                    <option value="<?= (int)$cat['id'] ?>">
+                                        <?= e($cat['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group">
@@ -187,21 +192,25 @@ try {
 
             <div class="card">
                 <h2>Registrar movimiento</h2>
-                <form id="form-movimiento" method="post">
+                <form id="form-movimiento" action="guardar.php" method="post">
                     <input type="hidden" name="accion" value="movimiento"/>
                     <div class="grid">
                         <div class="form-group">
                             <label>Producto</label>
                             <select name="producto_id" required>
                                 <option value="">Selecciona</option>
-                                <!-- TODO -->
+                                <?php foreach ($productos as $prod): ?>
+                                    <option value="<?= (int)$prod['id'] ?>">
+                                        <?= e($prod['codigo']) ?> - <?= e($prod['nombre']) ?> (Stock: <?= (int)$prod['stock'] ?>)
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Tipo</label>
                             <select name="tipo">
-                                <option>ENTRADA</option>
-                                <option>SALIDA</option>
+                                <option value="ENTRADA">ENTRADA</option>
+                                <option value="SALIDA">SALIDA</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -235,6 +244,56 @@ try {
                             </tr>
                         </thead>
                         <tbody>
+                            <?php if (empty($productos)): ?>
+                                <tr>
+                                    <td colspan="6">No hay productos registrados.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($productos as $prod): ?>
+                                    <tr class="<?= ((int)$prod['stock'] <= (int)$prod['stock_minimo']) ? 'stock-bajo' : '' ?>">
+                                        <td><?= e($prod['codigo']) ?></td>
+                                        <td><?= e($prod['nombre']) ?></td>
+                                        <td><?= e($prod['categoria']) ?></td>
+                                        <td><strong><?= (int)$prod['stock'] ?></strong></td>
+                                        <td><?= (int)$prod['stock_minimo'] ?></td>
+                                        <td>$<?= number_format((float)$prod['precio'], 2) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Últimos movimientos</h2>
+                <div class="table-wrap">
+                    <table id="tabla-movimientos">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($movimientos)): ?>
+                                <tr>
+                                    <td colspan="5">Aún no hay movimientos registrados.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($movimientos as $mov): ?>
+                                    <tr>
+                                        <td><?= e($mov['fecha']) ?></td>
+                                        <td><?= e($mov['codigo']) ?> - <?= e($mov['producto']) ?></td>
+                                        <td><strong><?= e($mov['tipo']) ?></strong></td>
+                                        <td><?= (int)$mov['cantidad'] ?></td>
+                                        <td><?= e($mov['observaciones'] ?? '—') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
